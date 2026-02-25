@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spark — Saved Ideas</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+/* ── Saved page styles ── */
+.page-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 0;
+  min-height: calc(100vh - 60px);
+}
+
+.ideas-col {
+  border-right: 1px solid var(--border);
+  padding: 2rem 2.5rem;
+  overflow-y: auto;
+}
+
+.sidebar-col {
+  padding: 2rem 1.75rem;
+  position: sticky;
+  top: 60px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+/* Column headers */
+.col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.col-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Saved card */
+.saved-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  animation: fadeUp 0.35s ease both;
+  position: relative;
+}
+
+.saved-card:hover { border-color: rgba(91,76,255,0.3); }
+.saved-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 24px rgba(91,76,255,0.15);
+}
+
+.saved-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.saved-card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.saved-card-meta {
+  font-size: 0.65rem;
+  color: var(--text-3);
+  margin-top: 0.2rem;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem;
+  line-height: 1;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.delete-btn:hover { color: var(--red); }
+
+.saved-card-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+
+.saved-score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.score-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-3);
+  transition: color 0.1s;
+}
+.star.filled { color: var(--amber); }
+.star:hover { color: var(--amber); }
+
+.score-label {
+  font-size: 0.62rem;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+}
+
+.notes-preview {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  font-style: italic;
+  margin-top: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar detail panel */
+.detail-panel {
+  display: none;
+}
+.detail-panel.visible { display: block; }
+
+.detail-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.3rem;
+}
+
+.detail-tagline {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--text-2);
+  margin-bottom: 1rem;
+}
+
+.detail-desc {
+  font-size: 0.78rem;
+  color: var(--text-2);
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.detail-section { margin-bottom: 1.25rem; }
+.detail-section label { margin-bottom: 0.5rem; }
+
+.notes-area {
+  width: 100%;
+  min-height: 100px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  resize: vertical;
+  outline: none;
+  line-height: 1.65;
+}
+.notes-area:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(91,76,255,0.12); }
+
+.save-note-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.metrics-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.metric-mini {
+  background: rgba(0,0,0,0.2);
+  border-radius: 7px;
+  padding: 0.65rem;
+}
+.metric-mini .metric-label { font-size: 0.57rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.2rem; }
+.metric-mini .metric-val { font-size: 0.78rem; color: var(--text); font-family: 'DM Mono', monospace; }
+
+/* Summary section */
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  font-size: 0.72rem;
+}
+.summary-row + .summary-row { border-top: 1px solid var(--border); }
+.summary-key { color: var(--text-3); }
+.summary-val { color: var(--text); font-weight: 400; }
+
+/* Kanban view toggle */
+.view-toggle { display: flex; gap: 0.35rem; }
+.view-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  border-radius: 5px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.view-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-lo);
+}
+
+/* Kanban */
+.kanban-board {
+  display: none;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.kanban-board.visible { display: grid; }
+
+.kanban-col {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.kanban-col-header {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kanban-count {
+  background: var(--border);
+  color: var(--text-3);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.6rem;
+}
+
+.kanban-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.kanban-item:hover { border-color: rgba(91,76,255,0.3); }
+.kanban-item-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.8rem; margin-bottom: 0.3rem; }
+.kanban-item-sub { font-size: 0.62rem; color: var(--text-3); }
+
+.no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  text-align: center;
+  gap: 0.5rem;
+}
+.no-selection-icon { font-size: 2rem; opacity: 0.2; }
+.no-selection p { font-size: 0.72rem; color: var(--text-3); max-width: 180px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .page-layout { grid-template-columns: 1fr; }
+  .sidebar-col { border-top: 1px solid var(--border); position: static; max-height: none; }
+  .ideas-col { border-right: none; }
+  .kanban-board.visible { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<div class="app-wrapper">
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <div class="brand-icon">⚡</div>
+      <span class="brand-name">Spark</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link"><span>Generate</span></a>
+      <a href="saved.html" class="nav-link active">
+        <span>Saved</span>
+        <span class="nav-badge" id="saved-badge" style="display:none">0</span>
+      </a>
+      <a href="validate.html" class="nav-link"><span>Validate</span></a>
+    </div>
+  </nav>
+
+  <div class="page-layout" id="page-layout">
+    <!-- LEFT: Ideas list -->
+    <div class="ideas-col" id="ideas-col">
+      <div class="col-header">
+        <div>
+          <div class="col-title">Saved Ideas</div>
+          <div style="font-size:0.65rem;color:var(--text-3);margin-top:2px;" id="count-label">0 ideas saved</div>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="list" onclick="setView('list')">≡ List</button>
+          <button class="view-btn" data-view="kanban" onclick="setView('kanban')">⊞ Board</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearAll()" style="margin-left:0.35rem;color:var(--red);">Clear all</button>
+        </div>
+      </div>
+
+      <!-- Kanban board -->
+      <div class="kanban-board" id="kanban-board">
+        <div class="kanban-col">
+          <div class="kanban-col-header">Exploring <span class="kanban-count" id="k-count-0">0</span></div>
+          <div id="k-col-0"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">Validating <span class="kanban-count" id="k-count-1">0</span></div>
+          <div id="k-col-1"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header">Building <span class="kanban-count" id="k-count-2">0</span></div>
+          <div id="k-col-2"></div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div id="list-view"></div>
+    </div>
+
+    <!-- RIGHT: Sidebar -->
+    <div class="sidebar-col">
+      <div class="col-header">
+        <div class="col-title">Idea Details</div>
+      </div>
+
+      <div class="no-selection" id="no-selection">
+        <div class="no-selection-icon">👆</div>
+        <p>Select an idea to see details and add notes</p>
+      </div>
+
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-title" id="dp-title"></div>
+        <div class="detail-tagline" id="dp-tagline"></div>
+
+        <div class="metrics-mini" id="dp-metrics"></div>
+
+        <div class="detail-desc" id="dp-desc"></div>
+
+        <div class="detail-section">
+          <label>Your Interest Rating</label>
+          <div class="score-stars" id="dp-stars"></div>
+        </div>
+
+        <div class="detail-section">
+          <label>Your Notes</label>
+          <textarea class="notes-area" id="dp-notes" placeholder="Add your thoughts, market research, concerns, next steps..."></textarea>
+          <button class="btn btn-primary save-note-btn" onclick="saveNote()">Save Note</button>
+        </div>
+
+        <div class="detail-section">
+          <label>Stage</label>
+          <div class="select-wrap">
+            <select id="dp-stage" onchange="saveStage()">
+              <option value="0">Exploring</option>
+              <option value="1">Validating</option>
+              <option value="2">Building</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;">
+          <a id="dp-validate-link" href="#" class="btn btn-ghost" style="flex:1;text-align:center;text-decoration:none;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;">
+            → Validate
+          </a>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="removeSelected()">Remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+let selectedId = null;
+let currentView = 'list';
+
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  document.getElementById('kanban-board').classList.toggle('visible', v === 'kanban');
+  document.getElementById('list-view').style.display = v === 'list' ? '' : 'none';
+}
+
+function render() {
+  const saved = Saved.getAll();
+  const countLabel = document.getElementById('count-label');
+  countLabel.textContent = `${saved.length} idea${saved.length !== 1 ? 's' : ''} saved`;
+
+  const listEl = document.getElementById('list-view');
+
+  if (!saved.length) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">💡</div>
+        <h3>No saved ideas yet</h3>
+        <p>Go to Generate and hit the ♡ icon on any idea to save it here.</p>
+        <a href="index.html" class="btn btn-primary" style="margin-top:1rem;text-decoration:none;">← Generate Ideas</a>
+      </div>`;
+    // Clear kanban
+    ['0','1','2'].forEach(i => { document.getElementById('k-col-' + i).innerHTML = ''; document.getElementById('k-count-' + i).textContent = '0'; });
+    return;
+  }
+
+  // Build kanban
+  const stages = { '0': [], '1': [], '2': [] };
+
+  listEl.innerHTML = saved.map((s, idx) => {
+    const idea = getIdea(s.id);
+    if (!idea) return '';
+    const diff = getDiffTag(idea.difficulty);
+    const stageLabel = s.stage != null ? s.stage : 0;
+    stages[String(stageLabel)].push({ idea, s });
+
+    return `
+    <div class="saved-card ${selectedId === s.id ? 'selected' : ''}" id="sc-${s.id}" onclick="selectIdea('${s.id}')" style="animation-delay:${idx*0.05}s">
+      <div class="saved-card-header">
+        <div>
+          <div class="saved-card-title">${idea.title}</div>
+          <div class="saved-card-meta">Saved ${timeSince(s.savedAt)}</div>
+        </div>
+        <button class="delete-btn" title="Remove" onclick="event.stopPropagation();removeIdea('${s.id}')">×</button>
+      </div>
+      <div class="saved-card-tags">
+        <span class="tag ${diff.cls}">${diff.label}</span>
+        <span class="tag tag-gray">${idea.revenueRange}</span>
+        <span class="tag tag-gray">${['Exploring','Validating','Building'][stageLabel]}</span>
+      </div>
+      <div class="saved-score-row">
+        <div class="score-stars" id="stars-${s.id}">${starsHTML(s.id, s.score || 0)}</div>
+        <span class="score-label">Interest</span>
+      </div>
+      ${s.notes ? `<div class="notes-preview">"${s.notes.slice(0, 60)}${s.notes.length > 60 ? '…' : ''}"</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Kanban
+  ['0','1','2'].forEach(k => {
+    const col = stages[k];
+    document.getElementById('k-count-' + k).textContent = col.length;
+    document.getElementById('k-col-' + k).innerHTML = col.map(({ idea, s }) => `
+      <div class="kanban-item" onclick="selectIdea('${s.id}')">
+        <div class="kanban-item-title">${idea.title}</div>
+        <div class="kanban-item-sub">${idea.revenueRange} · ${idea.mvpWeeks[0]}–${idea.mvpWeeks[1]}w</div>
+      </div>`).join('');
+  });
+
+  // Re-select if needed
+  if (selectedId) populateSidebar(selectedId);
+}
+
+function starsHTML(id, score) {
+  return [1,2,3,4,5].map(n =>
+    `<span class="star ${score >= n ? 'filled' : ''}" onclick="rateStar('${id}',${n});event.stopPropagation();">★</span>`
+  ).join('');
+}
+
+function rateStar(id, score) {
+  Saved.update(id, { score });
+  // Update inline stars
+  const el = document.getElementById('stars-' + id);
+  if (el) el.innerHTML = starsHTML(id, score);
+  if (selectedId === id) {
+    const dp = document.getElementById('dp-stars');
+    if (dp) dp.innerHTML = starsHTML(id, score);
+  }
+}
+
+function selectIdea(id) {
+  selectedId = id;
+  document.querySelectorAll('.saved-card').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('sc-' + id);
+  if (card) card.classList.add('selected');
+  populateSidebar(id);
+}
+
+function populateSidebar(id) {
+  const idea = getIdea(id);
+  const saved = Saved.getAll().find(s => s.id === id);
+  if (!idea || !saved) return;
+
+  document.getElementById('no-selection').style.display = 'none';
+  const panel = document.getElementById('detail-panel');
+  panel.classList.add('visible');
+
+  document.getElementById('dp-title').textContent = idea.title;
+  document.getElementById('dp-tagline').textContent = `"${idea.tagline}"`;
+  document.getElementById('dp-desc').textContent = idea.desc;
+  document.getElementById('dp-validate-link').href = `validate.html?id=${id}`;
+  document.getElementById('dp-notes').value = saved.notes || '';
+  document.getElementById('dp-stage').value = String(saved.stage != null ? saved.stage : 0);
+  document.getElementById('dp-stars').innerHTML = starsHTML(id, saved.score || 0);
+
+  document.getElementById('dp-metrics').innerHTML = `
+    <div class="metric-mini"><div class="metric-label">Revenue</div><div class="metric-val">${idea.revenueRange}</div></div>
+    <div class="metric-mini"><div class="metric-label">ARR Potential</div><div class="metric-val">${idea.arr}</div></div>
+    <div class="metric-mini"><div class="metric-label">MVP Time</div><div class="metric-val">${idea.mvpWeeks[0]}–${idea.mvpWeeks[1]}w</div></div>
+    <div class="metric-mini"><div class="metric-label">Difficulty</div><div class="metric-val">${idea.difficulty}</div></div>
+  `;
+}
+
+function saveNote() {
+  if (!selectedId) return;
+  const notes = document.getElementById('dp-notes').value;
+  Saved.update(selectedId, { notes });
+  render();
+  showToast('Notes saved', '📝');
+}
+
+function saveStage() {
+  if (!selectedId) return;
+  const stage = +document.getElementById('dp-stage').value;
+  Saved.update(selectedId, { stage });
+  render();
+}
+
+function removeIdea(id) {
+  Saved.remove(id);
+  if (selectedId === id) {
+    selectedId = null;
+    document.getElementById('detail-panel').classList.remove('visible');
+    document.getElementById('no-selection').style.display = '';
+  }
+  render();
+  showToast('Idea removed', '✕');
+}
+
+function removeSelected() {
+  if (selectedId) removeIdea(selectedId);
+}
+
+function clearAll() {
+  if (!confirm('Remove all saved ideas?')) return;
+  Saved.getAll().forEach(s => Saved.remove(s.id));
+  selectedId = null;
+  document.getElementById('detail-panel').classList.remove('visible');
+  document.getElementById('no-selection').style.display = '';
+  render();
+  showToast('All ideas cleared', '🗑');
+}
+
+function timeSince(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return 'just now';
+  if (sec < 3600) return Math.floor(sec/60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec/3600) + 'h ago';
+  return Math.floor(sec/86400) + 'd ago';
+}
+
+render();
+</script>
+</body>
+</html>
